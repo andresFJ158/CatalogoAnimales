@@ -31,10 +31,15 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@android:drawable/ic_menu_revert"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:tint="@android:color/white"/>
+            android:background="?attr/selectableItemBackgroundBorderless" />
     </LinearLayout>
 
+        <Button
+            android:id="@+id/btnCargar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:text="Cargar Animales" />
     <!-- Lista -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"

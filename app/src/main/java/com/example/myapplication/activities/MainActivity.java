@@ -18,7 +18,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         // Inicializar datos
-        DataManager.getInstance();
+        DataManager.getInstance(this);
 
         CardView cardViewVerEmpleados = findViewById(R.id.cardViewVerAnimales);
         cardViewVerEmpleados.setOnClickListener(new View.OnClickListener() {

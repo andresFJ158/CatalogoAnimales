@@ -1,35 +1,46 @@
 package com.example.myapplication.manager;
 
-import com.example.myapplication.R;
+import android.content.Context;
+import android.widget.Toast;
+
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.example.myapplication.model.Animal;
+import com.example.myapplication.model.Mamifero;
 import com.example.myapplication.model.Ave;
 import com.example.myapplication.model.AveRapaz;
-import com.example.myapplication.model.Mamifero;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class DataManager {
+
     private static DataManager instance;
-    private List<Animal> animals;
+    private final List<Animal> animals = new ArrayList<>();
+    private RequestQueue requestQueue;
+    private final String BASE_URL = "https://raw.githubusercontent.com/adancondori/TareaAPI/refs/heads/main";
 
-    private DataManager() {
-        animals = new ArrayList<>();
-        // Datos de ejemplo (opcional)
-        animals.add(new Mamifero(1, "Elefante Africano", "Loxodonta Africana", "Sabana", 4500, "Peligro", "36", 22,"Hierbas",15000));
-        animals.add(new Mamifero(2, "Ballena Azul", "Balaenoptera musculus", "Oceano", 125000, "Peligro", "37", 11,"Carnivoro",600000));
-        animals.add(new Mamifero(3, "Oso Polar", "Ursus Maritimus", "Artantica", 400, "Vulnerable", "37", 7,"Carnivoro",999999));
-        animals.add(new AveRapaz(1, "Aguila real", "diurna", "Montañas", 5, "Preocupacion menor", "1,8", "Marron","Ganchudo",240,"Mamiferos medianos", R.drawable.ic_aguila,5000));
-        animals.add(new AveRapaz(2, "Halcon peregrino", "Falcon peregrinus", "Montañas", 2, "Preocupacion menor", "0,8", "Gris Azulado","Ganchudo",389,"Aves en vuelo",R.drawable.ic_falcon,7000));
-        animals.add(new AveRapaz(3, "Buho real", "Bubo bubo", "Bosques", 3, "Preocupacion menor", "2", "Marron, beige y negro","Corto",80,"Mamiferos pequeños",R.drawable.ic_buho,500));
-        animals.add(new Ave(1, "Paloma", "Columba livia", "Areas urbanas", 1, "Preocupacion menor", "0,5", "Gris","Corto y recto",100));
-        animals.add(new Ave(1, "Gorrion", "Passer", "Areas urbanas", 1, "Preocupacion menor", "0,5", "Gris","Corto y recto",50));
-
+    private DataManager(Context context) {
+        requestQueue = Volley.newRequestQueue(context.getApplicationContext());
     }
 
-    public static synchronized DataManager getInstance() {
+    public static synchronized DataManager getInstance(Context context) {
         if (instance == null) {
-            instance = new DataManager();
+            instance = new DataManager(context);
+        }
+        return instance;
+    }
+
+    public static DataManager getInstance() {
+        if (instance == null) {
+            throw new IllegalStateException("DataManager no inicializado. Llama primero a getInstance(Context)");
         }
         return instance;
     }
@@ -38,13 +49,78 @@ public class DataManager {
         return animals;
     }
 
-    public void agregarAnimal(Animal animal) {
-        animals.add(animal);
+    public interface OnDataLoadedListener {
+        void onSuccess();
+        void onError(String error);
     }
-    public int generarNuevoId() {
-        if (animals.isEmpty()) {
-            return 1;
-        }
-        return animals.get(animals.size() - 1).getId() + 1;
+
+    public void fetchAnimals(OnDataLoadedListener listener) {
+        String url = "https://raw.githubusercontent.com/adancondori/TareaAPI/refs/heads/main/api/animales.json";
+
+        JsonObjectRequest request = new JsonObjectRequest(
+                Request.Method.GET,
+                url,
+                null,
+                response -> {
+                    animals.clear();
+                    try {
+                        JSONObject jsonResponse = new JSONObject(response.toString());
+                        JSONArray animalesArray = jsonResponse.getJSONArray("animales");
+
+                        for (int i = 0; i < animalesArray.length(); i++) {
+                            JSONObject obj = animalesArray.getJSONObject(i);
+
+                            // Detectamos el tipo de animal
+                            String tipo = obj.getString("tipo");
+
+                            Animal animal;
+                            if ("mamifero".equalsIgnoreCase(tipo)) {
+                                // Crear un objeto Mamifero
+                                animal = new Mamifero(i, "", "", "", 0, "", "",0,"",0);
+                                animal.setEspecie(obj.getString("especie"));
+                                animal.setNomCientifico(obj.getString("nombreCientifico"));
+                                animal.setHabitat(obj.getString("habitat"));
+                                animal.setPesoProm(obj.getInt("pesoPromedio"));
+                                animal.setEstadoConserv(obj.getString("estadoConservacion"));
+                            } else if ("ave".equalsIgnoreCase(tipo)) {
+                                // Crear un objeto Ave
+                                animal = new Ave(i, "", "", "", 0, "", "","","",0);
+                                animal.setEspecie(obj.getString("especie"));
+                                animal.setNomCientifico(obj.getString("nombreCientifico"));
+                                animal.setHabitat(obj.getString("habitat"));
+                                animal.setPesoProm(obj.getInt("pesoPromedio"));
+                                animal.setEstadoConserv(obj.getString("estadoConservacion"));
+                            } else if ("ave_rapaz".equalsIgnoreCase(tipo)) {
+                                // Crear un objeto AveRapaz
+                                animal = new AveRapaz(i, "", "", "", 0, "", "", "","",0,"",0,0); // Asegúrate de que AveRapaz tenga el constructor adecuado
+                                animal.setEspecie(obj.getString("especie"));
+                                animal.setNomCientifico(obj.getString("nombreCientifico"));
+                                animal.setHabitat(obj.getString("habitat"));
+                                animal.setPesoProm(obj.getInt("pesoPromedio"));
+                                animal.setEstadoConserv(obj.getString("estadoConservacion"));
+                                // Por ejemplo, si AveRapaz tiene un campo para la imagen:
+                                ((AveRapaz) animal).setImg(obj.getInt("imagen")); // Asumiendo que "imagen" es el campo en el JSON
+                            } else {
+                                // Si el tipo no es mamífero, ave o ave rapaz, creamos un animal genérico
+                                animal = new Animal(i, "", "", "", 0, "", 0);
+                                animal.setEspecie(obj.getString("especie"));
+                                animal.setNomCientifico(obj.getString("nombreCientifico"));
+                                animal.setHabitat(obj.getString("habitat"));
+                                animal.setPesoProm(obj.getInt("pesoPromedio"));
+                                animal.setEstadoConserv(obj.getString("estadoConservacion"));
+                            }
+
+                            animals.add(animal);
+                        }
+                        listener.onSuccess();
+                    } catch (JSONException e) {
+                        listener.onError("Error al procesar JSON: " + e.getMessage());
+                    }
+                },
+                error -> listener.onError("Error de red: " + error.getMessage())
+        );
+
+        requestQueue.add(request);
     }
+
 }
